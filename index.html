@@ -2442,6 +2442,19 @@ function togglePwd(){
   inp.focus();
 }
 
+// ══ DEMO MODE — Masquage des emails pour la version démo publique ══
+function maskEmail(e){
+  if(!e)return '';
+  var at=e.indexOf('@');
+  if(at<0)return e;
+  var local=e.substring(0,at), domain=e.substring(at+1);
+  var parts=domain.split('.');
+  var domName=parts[0];
+  var domExt=parts.slice(1).join('.');
+  var ml=local.length>3?local.substring(0,3)+'***':local.substring(0,1)+'***';
+  var md=domName.length>3?domName.substring(0,3)+'***':domName.substring(0,1)+'***';
+  return ml+'@'+md+'.'+domExt;
+}
 // ══ AUTH V20 — Utilisateurs avec email + PIN + question de sécurité ══
 var PORTAL_USERS=[
   {name:'Demo',     lastName:'MSC',        email:'demo@msc-sextant.fr',          pin:'0000', role:'admin',
@@ -2560,7 +2573,7 @@ function forgotStep2(){
   // Lien mailto de secours
   var body='Bonjour,%0A%0AJe ne parviens pas à me connecter au portail Sextant.%0A%0A'
     +'Nom : '+encodeURIComponent(_forgotUser.name+' '+(_forgotUser.lastName||''))
-    +'%0AEmail : '+encodeURIComponent(_forgotUser.email)
+    +'%0AEmail : '+encodeURIComponent(maskEmail(_forgotUser.email))
     +'%0A%0AMerci de m\'aider.%0A%0A'+encodeURIComponent(_forgotUser.name);
   document.getElementById('forgot-mailto').href=
     'mailto:louis.rivault1@gmail.com?subject=Sextant%20%E2%80%94%20R%C3%A9cup%C3%A9ration%20acc%C3%A8s&body='+body;
@@ -4768,9 +4781,10 @@ function renderSection(iso,idx){
   if(!s)return;
   const rows=s.rows.map(r=>{
     const em=r.e?(r.e.replace(/'/g,"&#39;")):'';
+    const maskedE=r.e?maskEmail(r.e):'';
     let val;
     if(r.e){
-      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8">${r.e}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
+      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
     }else{
       val=`<span style="color:var(--gray5);font-size:.82rem">${r.v}</span>`;
     }
@@ -4849,7 +4863,7 @@ let SIDX=[];
 function buildSearch(){
   Object.entries(C).forEach(([iso,d])=>
     d.sections.forEach(s=>s.rows.forEach(r=>
-      SIDX.push({iso,flag:d.flag,name:d.name,sect:s.t,label:r.l,email:r.e||'',val:r.v})
+      SIDX.push({iso,flag:d.flag,name:d.name,sect:s.t,label:r.l,email:r.e?maskEmail(r.e):'',val:r.v})
     ))
   );
   const inp=document.getElementById('sb-inp'),drop=document.getElementById('sb-drop');
@@ -7437,7 +7451,7 @@ function renderAdminContacts(){
 <div class="adm-row"><label>Section</label><input value="${esc(c.section)}" oninput="adminData.customContacts[${i}].section=this.value;markDirty()" placeholder="ex: Booking"></div>
 <div class="adm-row"><label>Label</label><input value="${esc(c.label)}" oninput="adminData.customContacts[${i}].label=this.value;markDirty()" placeholder="ex: Email gÃ©nÃ©ral"></div>
 <div class="adm-row"><label>Nom</label><input value="${esc(c.name)}" oninput="adminData.customContacts[${i}].name=this.value;markDirty()" placeholder="ex: Jean Dupont"></div>
-<div class="adm-row"><label>Email</label><input value="${esc(c.email)}" oninput="adminData.customContacts[${i}].email=this.value;markDirty()" placeholder="ex: jean.dupont@msc.com" type="email"></div>
+<div class="adm-row"><label>Email</label><input value="${esc(c.email)}" oninput="adminData.customContacts[${i}].email=this.value;markDirty()" placeholder="ex: jea***@msc***.com" type="email"></div>
 </div>`;
   }).join('');
 }
