@@ -2444,16 +2444,10 @@ function togglePwd(){
 
 // ══ DEMO MODE — Masquage des emails pour la version démo publique ══
 function maskEmail(e){
-  if(!e)return '';
-  var at=e.indexOf('@');
-  if(at<0)return e;
-  var local=e.substring(0,at), domain=e.substring(at+1);
-  var parts=domain.split('.');
-  var domName=parts[0];
-  var domExt=parts.slice(1).join('.');
-  var ml=local.length>3?local.substring(0,3)+'***':local.substring(0,1)+'***';
-  var md=domName.length>3?domName.substring(0,3)+'***':domName.substring(0,1)+'***';
-  return ml+'@'+md+'.'+domExt;
+  if(!e||!e.includes('@'))return e||'';
+  var local=e.split('@')[0], domain=e.split('@')[1];
+  var firstName=local.split('.')[0];
+  return firstName+'@'+domain;
 }
 // ══ AUTH V20 — Utilisateurs avec email + PIN + question de sécurité ══
 var PORTAL_USERS=[
