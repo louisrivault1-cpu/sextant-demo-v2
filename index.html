@@ -2487,7 +2487,7 @@ function _loginSuccess(user){
   },600);
 }
 function enterDemoMode(){
-  var demoUser=PORTAL_USERS.find(function(u){ window._isDemoMode = true; return u.email==='demo@msc-sextant.fr';});
+  var demoUser=PORTAL_USERS.find(function(u){ window._isDemoMode = true; if(typeof showTemplate==="function") showTemplate(); if(typeof showMADPol==="function") showMADPol(); return u.email==='demo@msc-sextant.fr';});
   if(!demoUser) demoUser={name:'Demo',role:'admin',email:'demo@msc-sextant.fr'};
   sessionStorage.setItem('msc-demo','1');
   document.body.classList.add('demo-mode');
