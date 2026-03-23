@@ -2162,7 +2162,7 @@ body.demo-mode #topbar{top:26px!important}
 </style>
 
 <!-- ═══ DEMO BANNER ═══ -->
-<div id="demo-banner">MODE D&#201;MO &#8212; Mode demo - donnees confidentielles masquees</div>
+<div id="demo-banner">MODE D&#201;MO &#8212; Navigation libre, donn&#233;es confidentielles masqu&#233;es</div>
 
 <div id="login-overlay">
   <!-- Top bar -->
@@ -2444,29 +2444,22 @@ function togglePwd(){
   inp.focus();
 }
 
-// ══ DEMO MODE — Masquage des emails pour la version démfunction maskEmail(e){ if(!window._isDemoMode) return arguments[0]; 
+// ══ DEMO MODE — Masquage des emails pour la version démo publique ══
+function maskConfidential(text) {
+  if (!window._isDemoMode) return text;
+  if (!text || typeof text !== 'string') return text;
+  text = text.replace(/([a-zA-Z0-9._%+\-]+)@([a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g, function(match, local, domain) {
+    var firstName = local.split('.')[0];
+    return firstName + '@***';
+  });
+  text = text.replace(/(\+?\d[\d\s.\-()]{6,}\d)/g, '** ** ** ** **');
+  return text;
+}
+function maskEmail(e){ if(!window._isDemoMode) return arguments[0]; 
   if(!e||!e.includes('@'))return e||'';
   var local=e.split('@')[0], domain=e.split('@')[1];
-  return local.substring(0,2)+'***@'+domain;
-}
-function maskPhone(v){ if(!window._isDemoMode) return v;
-  if(!v) return v;
-  return v.replace(/(\+?\d[\d\s.\-()]{5,}\d)/g, function(m){ return m.substring(0,4)+' ** ** **'; });
-}
-function maskAddress(v){ if(!window._isDemoMode) return v;
-  if(!v) return v;
-  return v.replace(/\d{1,5}\s*,?\s*(rue|avenue|boulevard|bd|av|impasse|chemin|route|place|allée|passage|quai|cours|square|voie|r\.|bvd)/gi, '*** $1');
-}
-function maskValue(label, val){
-  if(!window._isDemoMode) return val;
-  if(!val || typeof val!=='string') return val;
-  var l=(label||'').toLowerCase();
-  if(/(tel|phone|fax|gsm|mobile|fixe|portable)/.test(l)) return maskPhone(val);
-  if(/(adresse|address|rue|postal|city|ville|cp)/.test(l)) return maskAddress(val);
-  if(/(mail)/.test(l)) return maskEmail(val);
-  return maskPhone(maskAddress(val));
-}
-+'@'+domain;
+  var firstName=local.split('.')[0];
+  return firstName+'@***';
 }
 // ══ AUTH V20 — Utilisateurs avec email + PIN + question de sécurité ══
 var PORTAL_USERS=[
@@ -4797,9 +4790,9 @@ function renderSection(iso,idx){
     const maskedE=r.e?maskEmail(r.e):'';
     let val;
     if(r.e){
-      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
+      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${maskEmail(r.e)}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${maskEmail(em)}')">📋</button></div>`;
     }else{
-      val=`<span style="color:var(--gray5);font-size:.82rem">${maskValue(r.l,r.v)}</span>`;
+      val=`<span style="color:var(--gray5);font-size:.82rem">${maskConfidential(r.v)}</span>`;
     }
     return `<div class="row"><div class="rl">${r.l}</div><div class="rv">${val}</div></div>`;
   }).join('');
@@ -4886,7 +4879,7 @@ let SIDX=[];
 function buildSearch(){
   Object.entries(C).forEach(([iso,d])=>
     d.sections.forEach(s=>s.rows.forEach(r=>
-      SIDX.push({iso,flag:d.flag,name:d.name,sect:s.t,label:r.l,email:r.e?maskEmail(r.e):'',val:r.v})
+      SIDX.push({iso,flag:d.flag,name:d.name,sect:s.t,label:r.l,email:r.e?maskEmail(r.e):'',val:maskConfidential(r.v)})
     ))
   );
   const inp=document.getElementById('sb-inp'),drop=document.getElementById('sb-drop');
@@ -6513,7 +6506,7 @@ function showMPanel(iso){
   const list=document.getElementById('mp-list');list.innerHTML='';
   if(data.contact){
     const ci=document.createElement('div');ci.className='mcontact-bloc';
-    ci.innerHTML='<strong>📧 Contact logistique :</strong><br>'+data.contact;
+    ci.innerHTML='<strong>📧 Contact logistique :</strong><br>'+maskConfidential(data.contact);
     list.appendChild(ci);
   }
   if(data.note){
@@ -7478,7 +7471,7 @@ function renderAdminContacts(){
 <div class="adm-row"><label>Section</label><input value="${esc(c.section)}" oninput="adminData.customContacts[${i}].section=this.value;markDirty()" placeholder="ex: Booking"></div>
 <div class="adm-row"><label>Label</label><input value="${esc(c.label)}" oninput="adminData.customContacts[${i}].label=this.value;markDirty()" placeholder="ex: Email gÃ©nÃ©ral"></div>
 <div class="adm-row"><label>Nom</label><input value="${esc(c.name)}" oninput="adminData.customContacts[${i}].name=this.value;markDirty()" placeholder="ex: Jean Dupont"></div>
-<div class="adm-row"><label>Email</label><input value="${esc(c.email)}" oninput="adminData.customContacts[${i}].email=this.value;markDirty()" placeholder="ex: jea***@msc***.com" type="email"></div>
+<div class="adm-row"><label>Email</label><input value="${esc(window._isDemoMode?maskEmail(c.email):c.email)}" oninput="adminData.customContacts[${i}].email=this.value;markDirty()" placeholder="ex: jea***@msc***.com" type="email"></div>
 </div>`;
   }).join('');
 }
@@ -7953,25 +7946,5 @@ destroy(){this._io.disconnect();if(this._kh)window.removeEventListener('keydown'
   setTimeout(init,1500);
 })();
 </script>
-<div id="globe-tip"></div>
-<script>
-(function(){
-  if(!window._isDemoMode) return;
-  function scanAndMask(){
-    document.querySelectorAll('.rv').forEach(function(el){
-      var rl = el.previousElementSibling;
-      if(!rl) return;
-      var label = rl.textContent||'';
-      var val = el.textContent||'';
-      if(!el.dataset.masked){
-        el.innerHTML = maskValue(label, el.innerHTML);
-        el.dataset.masked='1';
-      }
-    });
-  }
-  var obs = new MutationObserver(function(){ setTimeout(scanAndMask, 100); });
-  obs.observe(document.body, {childList:true, subtree:true});
-  setTimeout(scanAndMask, 500);
-})();
-</script></body>
+<div id="globe-tip"></div></body>
 </html>
