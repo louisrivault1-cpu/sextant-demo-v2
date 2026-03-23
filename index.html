@@ -2248,6 +2248,8 @@ body.demo-mode #topbar{top:26px!important}
 </div>
 
 <script>
+window._isDemoMode = false;
+
 // ══ LOGIN GLOBE (D3 orthographic — same as portal) ══
 (function(){
   if(sessionStorage.getItem('msc-auth')==='1'){
@@ -2274,7 +2276,7 @@ body.demo-mode #topbar{top:26px!important}
     var R=Math.min(W,H)*.44;
     var svg=d3.select('#login-globe-svg').attr('viewBox','0 0 '+W+' '+H);
 
-    var proj=d3.geoOrthographic().scale(R).translate([W/2,H/2]).clipAngle(90).rotate([-15,-50,0]);
+    var proj=d3.geoOrthographic().scale(R).translate([W/2,H/2]).clipAngle(90).rotate([-12,-48,0]);
     var path=d3.geoPath().projection(proj);
 
     // Stars
@@ -2443,14 +2445,11 @@ function togglePwd(){
 }
 
 // ══ DEMO MODE — Masquage des emails pour la version démo publique ══
-function maskEmail(email){
-if(document.body.classList.contains('demo-mode')){
-if(!email||!email.includes('@'))return email;
-var parts=email.split('@');
-var firstName=parts[0].split('.')[0];
-return firstName+'@'+parts[1];
-}
-return email;
+function maskEmail(e){ if(!window._isDemoMode) return arguments[0]; 
+  if(!e||!e.includes('@'))return e||'';
+  var local=e.split('@')[0], domain=e.split('@')[1];
+  var firstName=local.split('.')[0];
+  return firstName+'@'+domain;
 }
 // ══ AUTH V20 — Utilisateurs avec email + PIN + question de sécurité ══
 var PORTAL_USERS=[
@@ -2490,7 +2489,7 @@ function _loginSuccess(user){
   },600);
 }
 function enterDemoMode(){
-  var demoUser=PORTAL_USERS.find(function(u){return u.email==='demo@msc-sextant.fr';});
+  var demoUser=PORTAL_USERS.find(function(u){ window._isDemoMode = true; return u.email==='demo@msc-sextant.fr';});
   if(!demoUser) demoUser={name:'Demo',role:'admin',email:'demo@msc-sextant.fr'};
   sessionStorage.setItem('msc-demo','1');
   document.body.classList.add('demo-mode');
@@ -4839,12 +4838,22 @@ function navGlobeCountry(dir){
   if(idx<0)idx=keys.length-1;
   if(idx>=keys.length)idx=0;
   const iso=keys[idx];
-  // V14 — fade-out doux (pas de remove brutal) + pas de zoom-out intermédiaire
-  portG.selectAll('*').transition().duration(200).style('opacity','0').remove();
-  labelG.selectAll('*').transition().duration(200).style('opacity','0').remove();
-  // Pivoter directement vers le nouveau pays sans zoom-out inutile
-  showCountry(iso);
-  globeGoTo(iso);
+  portG.selectAll('*').remove();
+  labelG.selectAll('*').remove();
+  cLabelG.selectAll('*').remove();
+  const curR=R;
+  const midR=Math.min(W,H)*.9;
+  const interpOut=d3.interpolateNumber(curR,midR);
+  const dur1=350,t0=Date.now();
+  (function zoomOut(){
+    const t=Math.min(1,(Date.now()-t0)/dur1);
+    const e=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    R=interpOut(e);proj.scale(R);
+    [sphereEl,glowEl,borderEl].forEach(el=>el.attr('r',R));
+    redraw(currentIso);
+    if(t<1)requestAnimationFrame(zoomOut);
+    else{showCountry(iso);globeGoTo(iso);}
+  })();
 }
 
 function closePanel(){
@@ -5806,10 +5815,11 @@ function globeGoTo(iso){
   const feat=featureMap[iso];
   const c=fc||(feat?d3.geoCentroid(feat):null);
   if(!c)return;
-  // Clear old ports/labels immediately for clean transition
-  portG.selectAll('*').remove();
-  labelG.selectAll('*').remove();
-  cLabelG.selectAll('*').remove();
+  // V13 — STOP auto-rotation + fade-out (150ms)
+  autoRot=false;
+  portG.selectAll('*').transition().duration(150).style('opacity','0').remove();
+  labelG.selectAll('*').transition().duration(150).style('opacity','0').remove();
+  cLabelG.selectAll('*').transition().duration(150).style('opacity','0').remove();
   // Zoom per country size
   const ZOOM_SCALES={
     FRA:1.9, ESP:1.8, DEU:2.3, ITA:2.1, POL:2.2, TUR:1.5, GBR:2.6, SWE:1.4,
@@ -5822,21 +5832,24 @@ function globeGoTo(iso){
   const targetR=Math.min(W,H)*zoomFactor;
   // Panel is ~380px on right. Offset the center proportionally to zoom level
   // More zoom = country is bigger = less offset needed
-  const panelOffset=Math.max(2,12/zoomFactor);
+  const panelOffset=Math.max(1,5/zoomFactor);
   const target=[-c[0]+panelOffset,-c[1],0];
   const interpRot=d3.interpolate(cur,target);
   const interpScale=d3.interpolateNumber(curR,targetR);
-  const dur=1600;let t0=0;
+  const dur=1800;let t0=0; // V12 — smooth zoom
   function anim(ts){
     if(!t0)t0=ts;const t=Math.min(1,(ts-t0)/dur);
-    const e=(1-Math.cos(t*Math.PI))/2;
+    // V12 — ease-in-out quadratic: doux au départ, accélère, se pose en douceur
+    const e=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
     proj.rotate(interpRot(e));
     R=interpScale(e);
     proj.scale(R);
     [sphereEl,glowEl,borderEl].forEach(el=>el.attr('r',R));
-    redraw(currentIso,t<.95);
+    // V12 — only redraw land+graticule during zoom
+    landG.selectAll('path').attr('d',gpath);
+    gratG.select('.graticule').attr('d',gpath);
     if(t<1)requestAnimationFrame(anim);
-    else redraw(currentIso);
+    else{setTimeout(function(){redraw(currentIso);},80);}
   };requestAnimationFrame(anim);
 }
 
