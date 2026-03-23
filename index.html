@@ -2870,6 +2870,7 @@ function forgotStep2(){
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="cbtn2" onclick="copyBudapest()">📋 Copier le tableau</button>
     <button class="cbtn2" onclick="sendBudapest()" style="background:#4080c0">📧 Ouvrir le mail pré-rempli</button>
+    <button class="cbtn2" style="background:#666;color:#fff;border:1px solid #888;" onclick="document.querySelectorAll('#pt-bud input:not([type=date]),#pt-bud textarea').forEach(i=>i.value='');document.getElementById('bud-date').value='';document.getElementById('bud-preview').style.display='none';">🗑️ Clear</button>
   </div>
 
   <div class="cres" id="bud-preview" style="display:none;margin-top:12px">
@@ -4778,7 +4779,8 @@ function renderSection(iso,idx){
     const maskedE=r.e?maskEmail(r.e):'';
     let val;
     if(r.e){
-      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
+    const displayName = window._isDemoMode ? r.v.split(' ')[0] : r.v;
+      val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${displayName.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
     }else{
       val=`<span style="color:var(--gray5);font-size:.82rem">${maskValue(r.l,r.v)}</span>`;
     }
@@ -5435,7 +5437,7 @@ pol:`<strong>🇵🇱 POLOGNE — Gdynia · Gdansk</strong>
 
 function showMADPol(){
   const pol=document.getElementById('mad-pol').value;
-  document.getElementById('mad-pol-body').innerHTML=(MAD_POL[pol]||'').replace(/\n/g,'<br>');
+  document.getElementById('mad-pol-body').innerHTML= window._isDemoMode ? ((MAD_POL[pol]||'').replace(/\n/g,'<br>')).replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '***@msc.com') : (MAD_POL[pol]||'').replace(/\n/g,'<br>');
 }
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(showMADPol,600);});
 
@@ -5722,7 +5724,7 @@ T: +33 2 32 85 31 67`
 function showTemplate(){
   const pol=document.getElementById('tpl-pol').value;
   const tpl=TEMPLATES[pol]||'';
-  document.getElementById('tpl-body').textContent=tpl;
+  document.getElementById('tpl-body').textContent = window._isDemoMode ? tpl.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '***' + String.fromCharCode(64) + 'msc.com') : tpl;
 }
 function copyTemplate(){
   const pol=document.getElementById('tpl-pol').value;
