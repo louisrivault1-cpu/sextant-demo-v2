@@ -2162,7 +2162,7 @@ body.demo-mode #topbar{top:26px!important}
 </style>
 
 <!-- ═══ DEMO BANNER ═══ -->
-<div id="demo-banner">MODE D&#201;MO &#8212; Vous naviguez en lecture seule</div>
+<div id="demo-banner">MODE D&#201;MO &#8212; Mode demo - donnees confidentielles masquees</div>
 
 <div id="login-overlay">
   <!-- Top bar -->
@@ -2444,12 +2444,29 @@ function togglePwd(){
   inp.focus();
 }
 
-// ══ DEMO MODE — Masquage des emails pour la version démo publique ══
-function maskEmail(e){ if(!window._isDemoMode) return arguments[0]; 
+// ══ DEMO MODE — Masquage des emails pour la version démfunction maskEmail(e){ if(!window._isDemoMode) return arguments[0]; 
   if(!e||!e.includes('@'))return e||'';
   var local=e.split('@')[0], domain=e.split('@')[1];
-  var firstName=local.split('.')[0];
-  return firstName+'@'+domain;
+  return local.substring(0,2)+'***@'+domain;
+}
+function maskPhone(v){ if(!window._isDemoMode) return v;
+  if(!v) return v;
+  return v.replace(/(\+?\d[\d\s.\-()]{5,}\d)/g, function(m){ return m.substring(0,4)+' ** ** **'; });
+}
+function maskAddress(v){ if(!window._isDemoMode) return v;
+  if(!v) return v;
+  return v.replace(/\d{1,5}\s*,?\s*(rue|avenue|boulevard|bd|av|impasse|chemin|route|place|allée|passage|quai|cours|square|voie|r\.|bvd)/gi, '*** $1');
+}
+function maskValue(label, val){
+  if(!window._isDemoMode) return val;
+  if(!val || typeof val!=='string') return val;
+  var l=(label||'').toLowerCase();
+  if(/(tel|phone|fax|gsm|mobile|fixe|portable)/.test(l)) return maskPhone(val);
+  if(/(adresse|address|rue|postal|city|ville|cp)/.test(l)) return maskAddress(val);
+  if(/(mail)/.test(l)) return maskEmail(val);
+  return maskPhone(maskAddress(val));
+}
++'@'+domain;
 }
 // ══ AUTH V20 — Utilisateurs avec email + PIN + question de sécurité ══
 var PORTAL_USERS=[
@@ -4782,7 +4799,7 @@ function renderSection(iso,idx){
     if(r.e){
       val=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--white);font-size:.82rem">${r.v.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,function(m){return maskEmail(m)})}</span><a href="mailto:${r.e}" style="color:var(--gold);font-family:JetBrains Mono,monospace;font-size:.68rem;opacity:.8" title="Envoyer un email">${maskedE}</a><button class="cpbtn" onclick="event.stopPropagation();copyT('${em}')">📋</button></div>`;
     }else{
-      val=`<span style="color:var(--gray5);font-size:.82rem">${r.v}</span>`;
+      val=`<span style="color:var(--gray5);font-size:.82rem">${maskValue(r.l,r.v)}</span>`;
     }
     return `<div class="row"><div class="rl">${r.l}</div><div class="rv">${val}</div></div>`;
   }).join('');
@@ -7936,5 +7953,25 @@ destroy(){this._io.disconnect();if(this._kh)window.removeEventListener('keydown'
   setTimeout(init,1500);
 })();
 </script>
-<div id="globe-tip"></div></body>
+<div id="globe-tip"></div>
+<script>
+(function(){
+  if(!window._isDemoMode) return;
+  function scanAndMask(){
+    document.querySelectorAll('.rv').forEach(function(el){
+      var rl = el.previousElementSibling;
+      if(!rl) return;
+      var label = rl.textContent||'';
+      var val = el.textContent||'';
+      if(!el.dataset.masked){
+        el.innerHTML = maskValue(label, el.innerHTML);
+        el.dataset.masked='1';
+      }
+    });
+  }
+  var obs = new MutationObserver(function(){ setTimeout(scanAndMask, 100); });
+  obs.observe(document.body, {childList:true, subtree:true});
+  setTimeout(scanAndMask, 500);
+})();
+</script></body>
 </html>
